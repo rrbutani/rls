@@ -58,9 +58,67 @@ where
 /// Parse the given URI into a `PathBuf`.
 pub fn parse_file_path(uri: &Url) -> Result<PathBuf, UrlFileParseError> {
     if uri.scheme() == "file" {
-        uri.to_file_path()
-            .map_err(|_err| UrlFileParseError::InvalidFilePath)
+
+        match uri.to_file_path()
+                .map_err(|_err| UrlFileParseError::InvalidFilePath) {
+            Ok(path) => {
+                // Assuming `path` is absolute:
+                // let p = PathBuf::new();
+                // p.push(&path::MAIN_SEPARATOR.to_string());
+                use std::path::Component;
+                use std::path::{self, Prefix};
+                
+                let mut p = PathBuf::from(&path::MAIN_SEPARATOR.to_string());
+
+                // println!("New and shiny!! {:?}", p);
+
+                for i in path.components() {
+
+                    // println!("Currently: {:?}", p);
+                    // println!("Adding: {:?}", i);
+
+                    match i {
+                        Component::Prefix(prefix) => match prefix.kind() {
+                            Prefix::VerbatimDisk(d) => p.push(char::from(d).to_string()),
+                            Prefix::Disk(d) => p.push(char::from(d).to_string()),
+                            _ => return Err(UrlFileParseError::InvalidFilePath), // Can't translate
+                        },
+                        Component::RootDir => p.push(&path::MAIN_SEPARATOR.to_string()),
+                        Component::Normal(a) => {
+                            let norm = a.to_str().unwrap();
+                            let mut iter = norm.chars();
+                            iter.next();
+
+                            // should also check that p is root at this point for safety
+                            if a.len() == 2 && iter.next().unwrap() == ':' {
+                                p.push(norm.chars().next().unwrap().to_lowercase().to_string())
+                            } else {
+                                p.push(a)
+                            }
+                        },
+                        Component::CurDir => p.push("."), // Shouldn't hit
+                        Component::ParentDir => p.push(".."), // Shouldn't hit
+                    }
+                }
+
+                // println!("STRING IS NOW: {:?} from {:?}", p, path);
+                // println!("{:?}", p.exists());
+
+                Ok(p)
+            },
+            Err(err) => Err(err),
+        }
+
+        // let a = uri.to_file_path()
+        //     .map_err(|_err| UrlFileParseError::InvalidFilePath);
+
+        // println!("{:?}", a);
+        // println!("YOOOOOOOOOOOOOOO {:?}", a.unwrap().exists());
+        
+        //  uri.to_file_path()
+        //     .map_err(|_err| UrlFileParseError::InvalidFilePath)
     } else {
+        // println!("EGGGGGGGGGGGG {:?} isn't valid", uri);
         Err(UrlFileParseError::InvalidScheme)
     }
 }

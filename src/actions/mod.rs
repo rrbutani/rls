@@ -100,7 +100,7 @@ impl ActionContext {
                     uninit.vfs.clone(),
                     uninit.config.clone(),
                     client_capabilities,
-                    current_project,
+                    current_project, // Yo!
                     uninit.pid,
                     init_options.cmd_run,
                 );

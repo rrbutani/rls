@@ -399,14 +399,15 @@ fn server_caps(ctx: &ActionContext) -> ServerCapabilities {
     }
 }
 
-fn get_root_path(params: &InitializeParams) -> PathBuf {
+fn get_root_path(params: &InitializeParams) -> PathBuf { //Marked
     params
         .root_uri
         .as_ref()
         .map(|uri| {
-            assert!(uri.scheme() == "file");
-            uri.to_file_path().expect("Could not convert URI to path")
+            lsp_data::parse_file_path(uri).expect("broken eggs?")
         }).unwrap_or_else(|| {
+            // If we get here the conversion won't happen so let's hope we don't get here...
+
             params
                 .root_path
                 .as_ref()
